@@ -37,6 +37,7 @@
 lib
 
 # All that is related to Netbeans
+.dep.inc
 build
 dist
 nbproject

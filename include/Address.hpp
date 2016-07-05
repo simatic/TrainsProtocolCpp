@@ -13,6 +13,8 @@
 
 #pragma once
 
+#include <string>
+
 namespace common {
 
     typedef unsigned short address_t;
@@ -24,8 +26,9 @@ namespace common {
 
     class Address {
     public:
-        Address(const address_t ad);
 
+        Address(int rank, std::string hostname, std::string port);
+        
         /**
          * @brief Returns the rank corresponding to address of current object
          * @param[in] ad Address to convert
@@ -36,8 +39,10 @@ namespace common {
         /**
          * @brief Return the current Address of the process
          */
-        static const Address& getMyAddress();
+        static Address* getMyAddress();
 
+        static void initialize();
+        
         /**
          * @brief Tests if an address is null
          */
@@ -56,7 +61,10 @@ namespace common {
 
     protected:
     private:
-        address_t m_ad;
+        address_t   m_ad;
+        int         m_rank;
+        std::string m_hostname;
+        std::string m_port;        
     };
 
 }
