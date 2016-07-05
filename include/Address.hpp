@@ -1,0 +1,62 @@
+/*
+ * To change this license header, choose License Headers in Project Properties.
+ * To change this template file, choose Tools | Templates
+ * and open the template in the editor.
+ */
+
+/* 
+ * File:   Address.hpp
+ * Author: simatic
+ *
+ * Created on 4 juillet 2016, 15:39
+ */
+
+#pragma once
+
+namespace common {
+
+    typedef unsigned short address_t;
+
+    /**
+     * @brief Maximal number of participants
+     */
+#define MAX_MEMB (8 * sizeof(address_t))
+
+    class Address {
+    public:
+        Address(const address_t ad);
+
+        /**
+         * @brief Returns the rank corresponding to address of current object
+         * @param[in] ad Address to convert
+         * @return the corresponding rank (value between 0 and (@a MAX_MEMB-1)) or -1 if @a addrIsNull(ad) is true
+         */
+        const int addrToRank();
+
+        /**
+         * @brief Return the current Address of the process
+         */
+        static const Address& getMyAddress();
+
+        /**
+         * @brief Tests if an address is null
+         */
+        const bool isNull();
+
+        /**
+         * @brief Returns the address corresponding to rank @a rank
+         * @param[in] rank Rank to convert
+         * @return the corresponding address if @a rank is between 0 and (@a MAX_MEMB-1) and nullAddress otherwise
+         */
+        static address_t rankToAddr(const int rank);
+
+        // TODO Besoin de definir les output
+
+        // TODO Besoin de definir les ==
+
+    protected:
+    private:
+        address_t m_ad;
+    };
+
+}
