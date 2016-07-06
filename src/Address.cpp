@@ -28,10 +28,10 @@
 using namespace std;
 using namespace common;
 
-static vector<Address*> vecAddress(MAX_MEMB, nullptr);
+static vector<Address*> allPossibleAddresses(MAX_MEMB, nullptr);
 static Address* myAddress = nullptr;
 
-Address::Address(int rank, std::string hostname, std::string port) : m_ad(1<<rank), m_rank(rank), m_hostname(hostname), m_port(port)
+Address::Address(int rank, std::string hostname, std::string portBase) : m_ad(1<<rank), m_rank(rank), m_hostname(hostname), m_portBase(portBase)
 {
 }
 
@@ -58,19 +58,20 @@ Address* Address::getMyAddress() {
     return myAddress;
 }
 
-string Address::getPort() {
-    return m_port;
+string Address::getPort(unsigned int offset) {
+    int portBaseAsInt = stoi(m_portBase);
+    return to_string(portBaseAsInt + offset);
 }
 
 void Address::initialize() {
     map<string,bool> attributeMustBeNumeric = {
                 { "Rank", true },
                 { "Hostname", false },
-                { "Port", true } };
+                { "PortBase", true } };
 
     pugi::xml_document doc;
-    if (!doc.load_file("test/unit/addr_file.xml")) {
-        cerr << "Problem during analysis of 'addr_file.xml'" << endl;
+    if (!doc.load_file(CONFIG_FILE_NAME)) {
+        cerr << "Problem during analysis of file \"" << CONFIG_FILE_NAME << "\"" << endl;
         abort();
     }
     
@@ -88,14 +89,14 @@ void Address::initialize() {
                         (void)stoi(value);
                     }
                     catch (const invalid_argument& ia) {
-                        cerr << "Error : In addr_file.xml, Attribute '" << name << "' has value '" << value << "' which is *not* numeric (while it *must be* numeric)" << endl;                
+                        cerr << "Error : In file \"" << CONFIG_FILE_NAME << "\", Attribute '" << name << "' has value '" << value << "' which is *not* numeric (while it *must be* numeric)" << endl;                
                         abort();
                     }
                 }
                 mapNameValue[name] = value;
             }
             catch (const out_of_range& oor) {
-                cerr << "Error : In addr_file.xml, Attribute name '" << name << "' is not recognized as a standard attribute";
+                cerr << "Error : In file \"" << CONFIG_FILE_NAME << "\", Attribute name '" << name << "' is not recognized as a standard attribute";
                 dumpAttributes(attributeMustBeNumeric);
                 cerr << endl;
                 abort();
@@ -103,7 +104,7 @@ void Address::initialize() {
         }
 
         if (mapNameValue.size() != attributeMustBeNumeric.size()) {
-            cerr << "Error : In addr_file.xml, line with ";
+            cerr << "Error : In file \"" << CONFIG_FILE_NAME << "\", line with ";
             for (auto const& element : mapNameValue) {
                 cerr << element.first << "=\"" << element.second << "\" ";
             }
@@ -114,14 +115,14 @@ void Address::initialize() {
         }
         int rank = stoi(mapNameValue["Rank"]);
         try {
-            if (vecAddress.at(rank) != nullptr) {
-                cerr << "Error : In addr_file.xml, at least 2 lines define a Rank with value '" << rank << "'" << endl;
+            if (allPossibleAddresses.at(rank) != nullptr) {
+                cerr << "Error : In file \"" << CONFIG_FILE_NAME << "\", at least 2 lines define a Rank with value '" << rank << "'" << endl;
                 abort();            
             }
-            vecAddress.at(rank) = new Address(rank, mapNameValue["Hostname"], mapNameValue["Port"]);
+            allPossibleAddresses.at(rank) = new Address(rank, mapNameValue["Hostname"], mapNameValue["PortBase"]);
         }
         catch (const out_of_range& oor) {
-            cerr << "Error : In addr_file.xml, a line defines a Rank with value '" << rank << "' which is not in interval [0," << MAX_MEMB << "[" << endl;
+            cerr << "Error : In file \"" << CONFIG_FILE_NAME << "\", a line defines a Rank with value '" << rank << "' which is not in interval [0," << MAX_MEMB << "[" << endl;
             abort();
         }
     }
@@ -131,37 +132,35 @@ void Address::initialize() {
         cerr << "Error while calling gethostname" << endl;
         abort();
     }
-    char *localPort = getenv("TRAINS_PORT");
-    if (localPort == NULL) {
-        cerr << "Error: TRAINS_PORT environment variable is not defined" << endl;
+    char *localPortBase = getenv(PORT_BASE_ENV_VAR_NAME);
+    if (localPortBase == NULL) {
+        cerr << "Error: \"" << PORT_BASE_ENV_VAR_NAME << "\" environment variable is not defined" << endl;
         abort();
     }
     
     // We replace all addresses containing localhost by localhostName
-    for (const auto add: vecAddress) {
+    for (const auto add: allPossibleAddresses) {
         if ((add != nullptr) && (add->m_hostname == "localhost")) {
             add->m_hostname = localhostName;
         }
     }
 
     // We try to set myAddress
-    for (const auto add: vecAddress) {
-        if ((add != nullptr) && (add->m_hostname == localhostName) && (add->m_port == localPort)) {
+    for (const auto add: allPossibleAddresses) {
+        if ((add != nullptr) && (add->m_hostname == localhostName) && (add->m_portBase == localPortBase)) {
             myAddress = add;
         }
     }
     if (myAddress == nullptr) {
-        cerr << "Error : In addr_file.xml, there is no line with (Hostname=\"localhost\" or Hostname=\"" << localhostName << "\") AND Port=\"" << localPort << "\" (which is the value of TRAINS_PORT environment variable)" << endl;
+        cerr << "Error : In file \"" << CONFIG_FILE_NAME << "\", there is no line with (Hostname=\"localhost\" or Hostname=\"" << localhostName << "\") AND PortBase=\"" << localPortBase << "\" (which is the value of \"" << PORT_BASE_ENV_VAR_NAME << "\" environment variable)" << endl;
         abort();
     }
 }
 
-const bool Address::isNull() {
-    return m_ad == 0;
-}
-
-address_t Address::rankToAddr(const int rank) {
-    assert( (0 <= rank) && (rank < MAX_MEMB));
-    return 1 << rank;
+Address* Address::rankToAddress(const int rank) {
+    if (myAddress == nullptr) {
+        Address::initialize();
+    }
+    return allPossibleAddresses.at(rank);
 }
 

@@ -23,11 +23,15 @@ namespace common {
      * @brief Maximal number of participants
      */
 #define MAX_MEMB (8 * sizeof(address_t))
+    
+#define PORT_BASE_ENV_VAR_NAME "BROADCAST_PORT_BASE"
+    
+#define CONFIG_FILE_NAME "test/unit/addr_file.xml"
 
     class Address {
     public:
 
-        Address(int rank, std::string hostname, std::string port);
+        Address(int rank, std::string hostname, std::string portBase);
         
         /**
          * @brief Returns the rank corresponding to address of current object
@@ -37,26 +41,26 @@ namespace common {
         const int addrToRank();
 
         std::string getHostname();
-        std::string getPort();
 
         /**
          * @brief Return the current Address of the process
          */
         static Address* getMyAddress();
 
-        static void initialize();
-        
         /**
-         * @brief Tests if an address is null
+         * @brief Returns a port number which is @a offset away from current 
+         *        objet's @a m_portBase
+         * @param[in] offset Offset to apply
+         * @return Resulting offset expressed as a string
          */
-        const bool isNull();
-
+        std::string getPort(unsigned int offset);
+        
         /**
          * @brief Returns the address corresponding to rank @a rank
          * @param[in] rank Rank to convert
          * @return the corresponding address if @a rank is between 0 and (@a MAX_MEMB-1) and nullAddress otherwise
          */
-        static address_t rankToAddr(const int rank);
+        static Address* rankToAddress(const int rank);
 
         // TODO Besoin de definir les output
 
@@ -64,10 +68,12 @@ namespace common {
 
     protected:
     private:
+        static void initialize();
+
         address_t   m_ad;
         int         m_rank;
         std::string m_hostname;
-        std::string m_port;        
+        std::string m_portBase;        
     };
 
 }

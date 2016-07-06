@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no" ?>
 <ListParticipants FormatVersion="1">
-    <Participant Rank=" 0" Hostname="localhost" Port="2000" />
-    <Participant Rank=" 1" Hostname="localhost" Port="2001" />
-    <Participant Rank=" 2" Hostname="localhost" Port="2002" />
+    <Participant Rank=" 0" Hostname="localhost" PortBase="2000" />
+    <Participant Rank=" 1" Hostname="localhost" PortBase="2001" />
+    <Participant Rank=" 2" Hostname="localhost" PortBase="2002" />
 </ListParticipants>
