@@ -17,10 +17,13 @@
 #include <map>
 #include <string>
 
+#include <unistd.h>
 #include <stdlib.h>
 
 #include "Address.hpp"
 #include "pugixml.hpp"
+
+#define LOCALHOST_NAME_MAX_LEN 256
 
 using namespace std;
 using namespace common;
@@ -36,17 +39,27 @@ const int Address::addrToRank() {
     return m_rank;
 }
 
-Address* Address::getMyAddress() {
-    // TODO Besoin d'implanter correctement le code de getMyAddress()
-    return myAddress;
-}
-
 void dumpAttributes(const map<string,bool> &attributeMap) {
     cerr << " (Reminder: Required attributes are ";
     for (auto const& element : attributeMap) {
         cerr << "'" << element.first << "' ";
     }
     cerr << ")";
+}
+
+string Address::getHostname() {
+    return m_hostname;
+}
+
+Address* Address::getMyAddress() {
+    if (myAddress == nullptr) {
+        Address::initialize();
+    }
+    return myAddress;
+}
+
+string Address::getPort() {
+    return m_port;
 }
 
 void Address::initialize() {
@@ -112,10 +125,34 @@ void Address::initialize() {
             abort();
         }
     }
+
+    char localhostName[LOCALHOST_NAME_MAX_LEN];
+    if(gethostname(localhostName,LOCALHOST_NAME_MAX_LEN) != 0) {
+        cerr << "Error while calling gethostname" << endl;
+        abort();
+    }
+    char *localPort = getenv("TRAINS_PORT");
+    if (localPort == NULL) {
+        cerr << "Error: TRAINS_PORT environment variable is not defined" << endl;
+        abort();
+    }
+    
+    // We replace all addresses containing localhost by localhostName
     for (const auto add: vecAddress) {
-        if (add != nullptr) {
-            cerr << "**** Rank:" << add->m_rank << ", m_ad="<< add->m_ad << " / " << add->m_hostname << ":" << add->m_port << endl;
+        if ((add != nullptr) && (add->m_hostname == "localhost")) {
+            add->m_hostname = localhostName;
         }
+    }
+
+    // We try to set myAddress
+    for (const auto add: vecAddress) {
+        if ((add != nullptr) && (add->m_hostname == localhostName) && (add->m_port == localPort)) {
+            myAddress = add;
+        }
+    }
+    if (myAddress == nullptr) {
+        cerr << "Error : In addr_file.xml, there is no line with (Hostname=\"localhost\" or Hostname=\"" << localhostName << "\") AND Port=\"" << localPort << "\" (which is the value of TRAINS_PORT environment variable)" << endl;
+        abort();
     }
 }
 

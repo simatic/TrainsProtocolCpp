@@ -36,6 +36,9 @@ namespace common {
          */
         const int addrToRank();
 
+        std::string getHostname();
+        std::string getPort();
+
         /**
          * @brief Return the current Address of the process
          */
